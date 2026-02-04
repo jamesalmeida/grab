@@ -16,13 +16,15 @@ Drop a URL, get everything saved — text, media, transcripts, summaries — org
 ## Install
 
 ```bash
-brew install yt-dlp ffmpeg
+brew install yt-dlp ffmpeg openai-whisper
 ```
 
-Set your OpenAI API key for transcription and summaries:
+Optionally, set your OpenAI API key for AI summaries and smart folder titles:
 ```bash
 export OPENAI_API_KEY="sk-..."
 ```
+
+Without it, media downloads and transcription (local Whisper) still work.
 
 Clone and make the script available:
 ```bash
@@ -88,7 +90,7 @@ Downloads are organized by type, each in its own dated folder:
 
 ## Features
 
-- **Auto-transcription** — Videos are transcribed via OpenAI Whisper API, with automatic chunking for large files
+- **Auto-transcription** — Videos are transcribed locally via Whisper (no API key needed)
 - **AI summaries** — Every piece of content gets an AI-generated summary with key insights
 - **Smart folder naming** — Video folders are renamed based on transcript content (not just the tweet text)
 - **Image descriptions** — Image-only tweets get folder names from AI image analysis
@@ -114,7 +116,8 @@ Downloads are organized by type, each in its own dated folder:
 - `ffmpeg` — audio extraction and video merging
 - `curl` — API requests
 - `python3` — JSON parsing and API calls
-- `OPENAI_API_KEY` — transcription (Whisper) and summaries (GPT-4o-mini). Without it, media downloads still work but transcription/summaries are skipped.
+- `whisper` (openai-whisper) — local transcription (no API key needed)
+- `OPENAI_API_KEY` — optional, for AI summaries and smart folder titles (GPT-4o-mini). Without it, media downloads and transcription still work.
 
 ## OpenClaw Skill
 

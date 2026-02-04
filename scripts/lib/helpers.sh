@@ -15,8 +15,8 @@ info() { echo -e "${BLUE}ℹ️  $1${NC}"; }
 # Early check for OPENAI_API_KEY
 check_api_key() {
     if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-        warn "OPENAI_API_KEY not set. Transcription and summaries will be skipped."
-        warn "Media downloads will still work."
+        warn "OPENAI_API_KEY not set. Summaries and smart titles will be skipped."
+        warn "Media downloads and transcription (local Whisper) still work."
         echo ""
     fi
 }
@@ -41,8 +41,8 @@ OUTPUT:
     Config: $CONFIG_FILE
 
 REQUIREMENTS:
-    brew install yt-dlp ffmpeg
-    OPENAI_API_KEY env var (for transcription/summaries)
+    brew install yt-dlp ffmpeg openai-whisper
+    OPENAI_API_KEY env var (optional — for summaries/smart titles)
 
 EOF
 }
@@ -52,6 +52,7 @@ check_deps() {
     command -v yt-dlp >/dev/null || missing+=("yt-dlp")
     command -v ffmpeg >/dev/null || missing+=("ffmpeg")
     command -v curl >/dev/null || missing+=("curl")
+    command -v whisper >/dev/null || missing+=("openai-whisper")
 
     if [[ ${#missing[@]} -gt 0 ]]; then
         err "Missing dependencies: ${missing[*]}"
@@ -74,81 +75,37 @@ transcribe_audio() {
     local audio_file="$1"
     local output_file="$2"
 
-    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
-        warn "OPENAI_API_KEY not set. Skipping transcription."
-        return 1
-    fi
+    info "Transcribing audio with local Whisper..."
 
-    info "Transcribing audio..."
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
 
-    # Check file size — OpenAI limit is 25MB
-    local file_size
-    file_size=$(stat -f%z "$audio_file" 2>/dev/null || stat -c%s "$audio_file" 2>/dev/null || echo 0)
-
-    if [[ "$file_size" -gt 25000000 ]]; then
-        info "File > 25MB, extracting audio and splitting..."
-        local tmp_dir
-        tmp_dir=$(mktemp -d)
-        local audio_only="$tmp_dir/audio.m4a"
-
-        # Extract audio only (much smaller)
-        ffmpeg -i "$audio_file" -vn -acodec aac -b:a 64k -y "$audio_only" 2>/dev/null
-
-        local audio_size
-        audio_size=$(stat -f%z "$audio_only" 2>/dev/null || stat -c%s "$audio_only" 2>/dev/null || echo 0)
-
-        if [[ "$audio_size" -gt 25000000 ]]; then
-            # Split into chunks
-            local duration
-            duration=$(ffprobe -v quiet -show_entries format=duration -of csv=p=0 "$audio_only" 2>/dev/null | cut -d. -f1)
-            local chunk_duration=600  # 10 min chunks
-            local chunks=()
-            local offset=0
-            local i=0
-
-            while [[ "$offset" -lt "$duration" ]]; do
-                local chunk_file="$tmp_dir/chunk_$(printf '%03d' $i).m4a"
-                ffmpeg -i "$audio_only" -ss "$offset" -t "$chunk_duration" -acodec aac -b:a 64k -y "$chunk_file" 2>/dev/null
-                chunks+=("$chunk_file")
-                offset=$((offset + chunk_duration))
-                i=$((i + 1))
-            done
-
-            # Transcribe each chunk
-            local full_transcript=""
-            for chunk in "${chunks[@]}"; do
-                local chunk_result
-                chunk_result=$(curl -sS https://api.openai.com/v1/audio/transcriptions \
-                    -H "Authorization: Bearer $OPENAI_API_KEY" \
-                    -F "file=@$chunk" \
-                    -F "model=whisper-1" \
-                    -F "response_format=text" 2>/dev/null) || true
-                full_transcript="$full_transcript $chunk_result"
-            done
-
-            echo "$full_transcript" > "$output_file"
-        else
-            # Small enough after audio extraction
-            local result
-            result=$(curl -sS https://api.openai.com/v1/audio/transcriptions \
-                -H "Authorization: Bearer $OPENAI_API_KEY" \
-                -F "file=@$audio_only" \
-                -F "model=whisper-1" \
-                -F "response_format=text" 2>/dev/null) || true
-            echo "$result" > "$output_file"
-        fi
-
+    # Extract audio to 16kHz mono WAV (optimal for Whisper)
+    local wav_file="$tmp_dir/audio.wav"
+    ffmpeg -i "$audio_file" -vn -ar 16000 -ac 1 -y "$wav_file" 2>/dev/null || {
+        warn "Failed to extract audio"
         rm -rf "$tmp_dir"
-    else
-        # Small enough, transcribe directly
-        local result
-        result=$(curl -sS https://api.openai.com/v1/audio/transcriptions \
-            -H "Authorization: Bearer $OPENAI_API_KEY" \
-            -F "file=@$audio_file" \
-            -F "model=whisper-1" \
-            -F "response_format=text" 2>/dev/null) || true
-        echo "$result" > "$output_file"
+        return 1
+    }
+
+    # Run local Whisper (turbo model — fast + accurate)
+    whisper "$wav_file" \
+        --model turbo \
+        --language en \
+        --output_format txt \
+        --output_dir "$tmp_dir" \
+        2>/dev/null || {
+            warn "Whisper transcription failed"
+            rm -rf "$tmp_dir"
+            return 1
+        }
+
+    # Whisper outputs audio.txt in the output dir
+    if [[ -s "$tmp_dir/audio.txt" ]]; then
+        cp "$tmp_dir/audio.txt" "$output_file"
     fi
+
+    rm -rf "$tmp_dir"
 
     if [[ -s "$output_file" ]]; then
         local words

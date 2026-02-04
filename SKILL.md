@@ -17,7 +17,7 @@ tags:
   - reddit
   - transcript
   - archive
-metadata: { "openclaw": { "emoji": "🫳", "requires": { "bins": ["yt-dlp", "ffmpeg"], "env": ["OPENAI_API_KEY"] }, "primaryEnv": "OPENAI_API_KEY", "install": [{ "id": "yt-dlp", "kind": "brew", "formula": "yt-dlp", "bins": ["yt-dlp"], "label": "Install yt-dlp (brew)" }, { "id": "ffmpeg", "kind": "brew", "formula": "ffmpeg", "bins": ["ffmpeg"], "label": "Install ffmpeg (brew)" }] } }
+metadata: { "openclaw": { "emoji": "🫳", "requires": { "bins": ["yt-dlp", "ffmpeg", "whisper"] }, "install": [{ "id": "yt-dlp", "kind": "brew", "formula": "yt-dlp", "bins": ["yt-dlp"], "label": "Install yt-dlp (brew)" }, { "id": "ffmpeg", "kind": "brew", "formula": "ffmpeg", "bins": ["ffmpeg"], "label": "Install ffmpeg (brew)" }, { "id": "openai-whisper", "kind": "brew", "formula": "openai-whisper", "bins": ["whisper"], "label": "Install Whisper (brew)" }] } }
 ---
 
 # grab 🫳
@@ -91,8 +91,9 @@ grab --help             # Show help
 ## Requirements
 
 ```bash
-brew install yt-dlp ffmpeg
+brew install yt-dlp ffmpeg openai-whisper
 ```
 
-`OPENAI_API_KEY` env var required for transcription and AI summaries.
-Without it, media downloads still work but transcription/summaries are skipped.
+Transcription uses local Whisper — no API key needed.
+`OPENAI_API_KEY` env var optional — enables AI summaries and smart folder titles.
+Without it, media downloads and transcription still work.
