@@ -407,8 +407,9 @@ for p in photos:
     fi
     [[ -z "$slug" ]] && slug="tweet"
 
-    local folder_name="$(date_str)_tweet_${slug}"
-    local out_dir="$BASE_DIR/$folder_name"
+    local sub_dir="$BASE_DIR/XPosts"
+    local folder_name="$(date_str)_${slug}"
+    local out_dir="$sub_dir/$folder_name"
     mkdir -p "$out_dir"
 
     info "Saving to: $folder_name/"
@@ -464,8 +465,8 @@ for p in photos:
                     local new_slug
                     new_slug=$(slugify "$desc_title")
                     if [[ -n "$new_slug" ]]; then
-                        local new_folder="$(date_str)_tweet_${new_slug}"
-                        local new_dir="$BASE_DIR/$new_folder"
+                        local new_folder="$(date_str)_${new_slug}"
+                        local new_dir="$sub_dir/$new_folder"
                         if [[ "$new_dir" != "$out_dir" && ! -d "$new_dir" ]]; then
                             mv "$out_dir" "$new_dir"
                             out_dir="$new_dir"
@@ -499,8 +500,8 @@ for p in photos:
                     if [[ -n "$desc" && "$desc" != "image" ]]; then
                         local new_slug
                         new_slug=$(slugify "$desc")
-                        local new_folder="$(date_str)_tweet_${new_slug}"
-                        local new_dir="$BASE_DIR/$new_folder"
+                        local new_folder="$(date_str)_${new_slug}"
+                        local new_dir="$sub_dir/$new_folder"
                         if [[ "$new_dir" != "$out_dir" ]]; then
                             mv "$out_dir" "$new_dir"
                             out_dir="$new_dir"
@@ -515,7 +516,7 @@ for p in photos:
     fi
 
     echo ""
-    log "Done! Saved to: $BASE_DIR/$folder_name/"
+    log "Done! Saved to: $out_dir/"
     echo ""
     echo "📁 Contents:"
     ls -1 "$out_dir" | while read -r f; do
@@ -557,8 +558,9 @@ grab_youtube() {
 
     local slug
     slug=$(slugify "$title")
-    local folder_name="$(date_str)_youtube_${slug}"
-    local out_dir="$BASE_DIR/$folder_name"
+    local sub_dir="$BASE_DIR/Youtube"
+    local folder_name="$(date_str)_${slug}"
+    local out_dir="$sub_dir/$folder_name"
     mkdir -p "$out_dir"
 
     info "Saving to: $folder_name/"
@@ -616,7 +618,7 @@ grab_youtube() {
     fi
 
     echo ""
-    log "Done! Saved to: $BASE_DIR/$folder_name/"
+    log "Done! Saved to: $out_dir/"
     echo ""
     echo "📁 Contents:"
     ls -1 "$out_dir" | while read -r f; do
@@ -750,8 +752,9 @@ with open('$tmp_parsed', 'w') as f:
     slug=$(slugify "$(echo "$title" | head -c 80)")
     [[ -z "$slug" ]] && slug="reddit-post"
 
-    local folder_name="$(date_str)_reddit_${slug}"
-    local out_dir="$BASE_DIR/$folder_name"
+    local sub_dir="$BASE_DIR/Reddit"
+    local folder_name="$(date_str)_${slug}"
+    local out_dir="$sub_dir/$folder_name"
     mkdir -p "$out_dir"
 
     info "Saving to: $folder_name/"
@@ -859,7 +862,7 @@ for url in data['images']:
     rm -f "$tmp_json" "$tmp_parsed"
 
     echo ""
-    log "Done! Saved to: $BASE_DIR/$folder_name/"
+    log "Done! Saved to: $out_dir/"
     echo ""
     echo "📁 Contents:"
     ls -1 "$out_dir" | while read -r f; do

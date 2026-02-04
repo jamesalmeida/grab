@@ -66,17 +66,34 @@ Download and archive content from URLs into organized folders.
 All saves go to `~/Dropbox/Tersono Cloud/` with each download in its own folder:
 ```
 ~/Dropbox/Tersono Cloud/
-  2026-02-03_tweet_embrace-change-you-can-shape-your-life/
-    tweet.txt
-    video.mp4
-    transcript.txt
-    summary.txt
-  2026-02-03_youtube_how-to-build-an-ai-agent/
-    video.mp4
-    description.txt
-    thumbnail.jpg
-    transcript.txt
-    summary.txt
+  XPosts/
+    2026-02-03_embrace-change-you-can-shape-your-life/
+      tweet.txt
+      video.mp4
+      transcript.txt
+      summary.txt
+  XArticles/
+    2026-01-20_the-arctic-smokescreen/
+      article.txt
+      summary.txt
+  Youtube/
+    2026-02-03_how-to-build-an-ai-agent/
+      video.mp4
+      description.txt
+      thumbnail.jpg
+      transcript.txt
+      summary.txt
+  Reddit/
+    2026-02-03_maybe-maybe-maybe/
+      post.txt
+      comments.txt
+      video.mp4
+      summary.txt
+  XSpaces/
+    2026-02-03_1430_space_username/
+      recording.m4a
+      transcript.txt
+      summary.txt
 ```
 
 ## Usage
