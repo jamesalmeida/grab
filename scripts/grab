@@ -39,6 +39,15 @@ load_config() {
 load_config
 BASE_DIR="$GRAB_DIR"
 
+# Early check for OPENAI_API_KEY
+check_api_key() {
+    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+        warn "OPENAI_API_KEY not set. Transcription and summaries will be skipped."
+        warn "Media downloads will still work."
+        echo ""
+    fi
+}
+
 # --- Colors ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -704,11 +713,11 @@ sys.exit(1)
 
     echo "$json_data" > "$tmp_json"
 
-    python3 -c "
-import json, sys, html
+    GRAB_TMP_JSON="$tmp_json" GRAB_TMP_PARSED="$tmp_parsed" python3 -c "
+import json, sys, html, os
 from datetime import datetime, timezone
 
-with open('$tmp_json') as f:
+with open(os.environ['GRAB_TMP_JSON']) as f:
     data = json.load(f)
 
 post = data[0]['data']['children'][0]['data']
@@ -761,7 +770,7 @@ result = {
     'images': images, 'top_comments': top_comments
 }
 
-with open('$tmp_parsed', 'w') as f:
+with open(os.environ['GRAB_TMP_PARSED'], 'w') as f:
     json.dump(result, f)
 " || {
         rm -f "$tmp_json" "$tmp_parsed"
@@ -771,17 +780,20 @@ with open('$tmp_parsed', 'w') as f:
 
     # Extract fields
     local title author subreddit score num_comments date_field selftext post_url is_video domain permalink
-    title=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['title'])")
-    author=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['author'])")
-    subreddit=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['subreddit'])")
-    score=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['score'])")
-    num_comments=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['num_comments'])")
-    date_field=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['date'])")
-    selftext=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['selftext'])")
-    post_url=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['post_url'])")
-    is_video=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['is_video'])")
-    domain=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['domain'])")
-    permalink=$(python3 -c "import json; d=json.load(open('$tmp_parsed')); print(d['permalink'])")
+    local _extract="import json,os; d=json.load(open(os.environ['GRAB_TMP_PARSED'])); print(d['"
+    local _end="'])"
+    export GRAB_TMP_PARSED="$tmp_parsed"
+    title=$(python3 -c "${_extract}title${_end}")
+    author=$(python3 -c "${_extract}author${_end}")
+    subreddit=$(python3 -c "${_extract}subreddit${_end}")
+    score=$(python3 -c "${_extract}score${_end}")
+    num_comments=$(python3 -c "${_extract}num_comments${_end}")
+    date_field=$(python3 -c "${_extract}date${_end}")
+    selftext=$(python3 -c "${_extract}selftext${_end}")
+    post_url=$(python3 -c "${_extract}post_url${_end}")
+    is_video=$(python3 -c "${_extract}is_video${_end}")
+    domain=$(python3 -c "${_extract}domain${_end}")
+    permalink=$(python3 -c "${_extract}permalink${_end}")
 
     local slug
     slug=$(slugify "$(echo "$title" | head -c 80)")
@@ -812,9 +824,9 @@ with open('$tmp_parsed', 'w') as f:
     log "Post saved"
 
     # Save top comments
-    python3 -c "
-import json
-data = json.load(open('$tmp_parsed'))
+    GRAB_TMP_PARSED="$tmp_parsed" python3 -c "
+import json, os
+data = json.load(open(os.environ['GRAB_TMP_PARSED']))
 comments = data['top_comments']
 if not comments:
     exit(0)
@@ -833,13 +845,13 @@ for i, c in enumerate(comments, 1):
 
     # Download images
     local image_count
-    image_count=$(python3 -c "import json; print(len(json.load(open('$tmp_parsed'))['images']))")
+    image_count=$(GRAB_TMP_PARSED="$tmp_parsed" python3 -c "import json,os; print(len(json.load(open(os.environ['GRAB_TMP_PARSED']))['images']))")
     if [[ "$image_count" -gt 0 ]]; then
         info "Downloading $image_count image(s)..."
         IMG_IDX=1
-        python3 -c "
-import json
-data = json.load(open('$tmp_parsed'))
+        GRAB_TMP_PARSED="$tmp_parsed" python3 -c "
+import json, os
+data = json.load(open(os.environ['GRAB_TMP_PARSED']))
 for url in data['images']:
     print(url)
 " | while IFS= read -r img_url; do
@@ -936,6 +948,7 @@ if [[ "$URL" == "--config" ]]; then
 fi
 
 check_deps
+check_api_key
 mkdir -p "$BASE_DIR"
 
 # Detect URL type — check for X articles first
