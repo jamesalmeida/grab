@@ -26,8 +26,24 @@ Download and archive content from URLs into organized folders.
 
 ## Setup
 
+### Dependencies
+```bash
+brew install yt-dlp ffmpeg openai-whisper
+```
+
+### Save Location
 On first run, `grab` asks where to save files (default: `~/Dropbox/ClawdBox/`).
 Config stored in `~/.config/grab/config`. Reconfigure anytime with `grab --config`.
+
+### Transcription (Local Whisper)
+Transcription runs locally via Whisper (`turbo` model) — no API key or network calls needed.
+
+### AI Summaries & Smart Titles (Optional)
+Set `OPENAI_API_KEY` to enable:
+- AI-generated summaries of content
+- Smart descriptive folder names (from transcript/image analysis)
+
+Without it, everything still works — you just won't get summaries or auto-renamed folders.
 
 ## What It Does
 
