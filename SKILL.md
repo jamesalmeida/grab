@@ -63,9 +63,11 @@ Download and archive content from URLs into organized folders.
 
 ## Output
 
-All saves go to `~/Dropbox/Tersono Cloud/` with each download in its own folder:
+On first run, `grab` asks where to save files (default: `~/Dropbox/ClawdBox/`). Config stored in `~/.config/grab/config`. Reconfigure anytime with `grab --config`.
+
+Downloads are organized by type:
 ```
-~/Dropbox/Tersono Cloud/
+<save_dir>/
   XPosts/
     2026-02-03_embrace-change-you-can-shape-your-life/
       tweet.txt

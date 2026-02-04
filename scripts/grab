@@ -2,9 +2,42 @@
 set -euo pipefail
 shopt -s nullglob
 
-VERSION="1.0.0"
-BASE_DIR="$HOME/Dropbox/Tersono Cloud"
+VERSION="1.1.0"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CONFIG_DIR="$HOME/.config/grab"
+CONFIG_FILE="$CONFIG_DIR/config"
+
+# Load or create config
+load_config() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        source "$CONFIG_FILE"
+    fi
+
+    if [[ -z "${GRAB_DIR:-}" ]]; then
+        # First run — ask where to save
+        echo ""
+        echo "🫳 grab — First time setup"
+        echo ""
+        echo "Where should grabbed files be saved?"
+        echo "  Default: $HOME/Dropbox/ClawdBox"
+        echo ""
+        read -rp "Save directory (press Enter for default): " user_dir
+        GRAB_DIR="${user_dir:-$HOME/Dropbox/ClawdBox}"
+
+        # Expand ~ if used
+        GRAB_DIR="${GRAB_DIR/#\~/$HOME}"
+
+        mkdir -p "$CONFIG_DIR"
+        echo "GRAB_DIR=\"$GRAB_DIR\"" > "$CONFIG_FILE"
+        echo ""
+        log "Config saved to $CONFIG_FILE"
+        echo "  Files will be saved to: $GRAB_DIR"
+        echo ""
+    fi
+}
+
+load_config
+BASE_DIR="$GRAB_DIR"
 
 # --- Colors ---
 RED='\033[0;31m'
@@ -25,6 +58,7 @@ Download and archive content from URLs
 
 USAGE:
     grab <url>
+    grab --config          Reconfigure save directory
 
 SUPPORTED:
     - X/Twitter tweets (with video, images, or text-only)
@@ -33,7 +67,8 @@ SUPPORTED:
     - YouTube videos
 
 OUTPUT:
-    All downloads saved to: $BASE_DIR/<folder>/
+    All downloads saved to: $GRAB_DIR/<type>/<folder>/
+    Config: $CONFIG_FILE
 
 REQUIREMENTS:
     brew install yt-dlp ffmpeg
@@ -883,6 +918,20 @@ fi
 
 if [[ "$URL" == "--version" || "$URL" == "-v" ]]; then
     echo "grab v${VERSION}"
+    exit 0
+fi
+
+if [[ "$URL" == "--config" ]]; then
+    echo "Current config: $CONFIG_FILE"
+    echo "  Save directory: $GRAB_DIR"
+    echo ""
+    read -rp "New save directory (press Enter to keep current): " new_dir
+    if [[ -n "$new_dir" ]]; then
+        new_dir="${new_dir/#\~/$HOME}"
+        mkdir -p "$CONFIG_DIR"
+        echo "GRAB_DIR=\"$new_dir\"" > "$CONFIG_FILE"
+        log "Updated save directory to: $new_dir"
+    fi
     exit 0
 fi
 
